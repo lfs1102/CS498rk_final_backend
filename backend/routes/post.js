@@ -59,13 +59,15 @@ module.exports = function (router) {
     })
 
     router.post('/post', isLoggedIn, (req, res) => {
-        if (!req.body || !req.body.text || !req.body.type) {
-            return res.status(400).send(wrapper("Missing request body, or missing text or type"))
+        if (!req.body || !req.body.text || !req.body.type || !req.body.latitude || !req.body.longitude) {
+            return res.status(400).send(wrapper("Missing request body, or missing text, type, latitude or longitude."))
         }
         var post = new Post({
             username: req.user.username,
             email: req.user.email,
             text: req.body.text,
+            latitude: req.body.latitude,
+            longitude: req.body.longitude,
             type: req.body.type,
             replyUsernames: [],
             replyEmails: [],
