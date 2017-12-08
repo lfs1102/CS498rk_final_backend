@@ -33,7 +33,7 @@ module.exports = function(router, passport) {
 
     router.get('/logout', function(req, res) {
         req.logOut();
-        res.send({ message: "logged out "});
+        res.send({ message: "logged out!"});
     });
 
     return router;

@@ -7,9 +7,12 @@ var PostSchema = new mongoose.Schema({
     email: String,
     text: String,
     type: String,
+    replyUsernames: [String],
+    replyEmails: [String],
     replies: [String],
     participants: [String],
-    dateCreated: Date
+    dateCreated: Date,
+    dateLastReplied: Date
 });
 
 // Export the Mongoose model
