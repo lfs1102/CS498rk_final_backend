@@ -11,18 +11,91 @@ module.exports = function (router) {
             if (!docs) {
                 return res.status(404).send(wrapper('Post not found.'));                
             } else {
-                return res.send(wrapper('OK', reformatReplies(docs)))
+                return res.send(wrapper('OK', reformat(docs)))
             }
         })
     })
     
+    router.delete('/post/id/:id', isLoggedIn, (req, res) => {
+        Post.findByIdAndRemove(req.params.id).exec((err, docs) => {
+            if (err || !docs) {
+                return res.status(404).send(wrapper('Post not found with ID ' + req.params.id))
+            } else {
+                return res.send(wrapper('OK', docs))
+            }
+        })
+    })
+
+    router.post('/post/join/:id', isLoggedIn, (req, res) => {
+        Post.findById(req.params.id).exec((err, docs) => {
+            if (err) {
+                return res.status(500).send(wrapper('Failed to look up the post.'));                
+            }
+            if (!docs) {
+                return res.status(404).send(wrapper('Post not found.'));                
+            } else {
+                var exist = false
+                for (var i = 0; i < docs.participants.length; i++) {
+                    if (JSON.parse(docs.participants[i]).email == req.user.email) {
+                        exist = true;
+                    }
+                }
+                if (!exist) {
+                    docs.participants.push(JSON.stringify({username: req.user.username, email: req.user.email}))
+                    docs.dateLastReplied = new Date()
+                }
+                Post.findByIdAndUpdate(req.params.id, docs, (err, docs_updated) => {
+                    if (err) {
+                        return res.status(500).send(wrapper('Failed to look up the post.'));                
+                    }
+                    if (!docs) {
+                        return res.status(404).send(wrapper('Post not found.'));                
+                    }
+                    else {
+                        return res.send(wrapper('OK', reformat(docs)));
+                    }
+                })
+            }
+        })
+    })
+    
+    router.post('/post/quit/:id', isLoggedIn, (req, res) => {
+        Post.findById(req.params.id).exec((err, docs) => {
+            if (err) {
+                return res.status(500).send(wrapper('Failed to look up the post.'));                
+            }
+            if (!docs) {
+                return res.status(404).send(wrapper('Post not found.'));                
+            } else {
+                var newParticipants = [];
+                for (var i = 0; i < docs.participants.length; i++) {
+                    if (JSON.parse(docs.participants[i]).email != req.user.email) {
+                        newParticipants.push(docs.participants[i])
+                    }
+                }
+                docs.participants = newParticipants;
+                Post.findByIdAndUpdate(req.params.id, docs, (err, docs_updated) => {
+                    if (err) {
+                        return res.status(500).send(wrapper('Failed to look up the post.'));                
+                    }
+                    if (!docs) {
+                        return res.status(404).send(wrapper('Post not found.'));                
+                    }
+                    else {
+                        return res.send(wrapper('OK', reformat(docs)));
+                    }
+                })
+            }
+        })
+    })
+
     router.get('/post/all', isLoggedIn, (req, res) => {
         Post.find({}, (err, posts) => {
             if (err) {
                 return res.status(500).send(wrapper('Failed to get posts.'));                
             }
             for (var i = 0; i < posts.length; i++) {
-                reformatReplies(posts[i]);
+                reformat(posts[i]);
             }
             return res.send(wrapper('OK', posts));
         })
@@ -42,6 +115,7 @@ module.exports = function (router) {
                 docs.replies.push(req.body.text);
                 docs.replyEmails.push(req.user.email);
                 docs.replyUsernames.push(req.user.username)
+                docs.replyDates.push(new Date())
                 docs.dateLastReplied = new Date()
                 Post.findByIdAndUpdate(req.params.id, docs, (err, docs_updated) => {
                     if (err) {
@@ -51,7 +125,7 @@ module.exports = function (router) {
                         return res.status(404).send(wrapper('Post not found.'));                
                     }
                     else {
-                        return res.send(wrapper('OK', reformatReplies(docs)));
+                        return res.send(wrapper('OK', reformat(docs)));
                     }
                 })
             }
@@ -71,6 +145,7 @@ module.exports = function (router) {
             type: req.body.type,
             replyUsernames: [],
             replyEmails: [],
+            replyDates: [],
             replies: [],
             participants: [],
             dateCreated: new Date(),
@@ -87,16 +162,21 @@ module.exports = function (router) {
 
     return router;
 }
-function reformatReplies(elem) {
+function reformat(elem) {
     for (var i = 0; i < elem.replies.length; i++) {
         elem.replies[i] = {
             username: elem.replyUsernames[i],
             email: elem.replyEmails[i],
-            text: elem.replies[i]
+            text: elem.replies[i],
+            date: elem.replyDates[i]
         }
+    }
+    for (var i = 0; i < elem.participants.length; i++) {
+        elem.participants[i] = JSON.parse(elem.participants[i])
     }
     elem.replyEmails = undefined;
     elem.replyUsernames = undefined;
+    elem.replyDates = undefined;
     return elem;
 }
 

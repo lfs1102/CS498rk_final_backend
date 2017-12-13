@@ -9,6 +9,7 @@ var PostSchema = new mongoose.Schema({
     type: String,
     replyUsernames: [String],
     replyEmails: [String],
+    replyDates: [Date],
     replies: [String],
     participants: [String],
     latitude: Number,
